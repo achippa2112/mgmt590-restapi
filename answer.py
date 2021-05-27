@@ -68,7 +68,7 @@ def answer():
             # Answer the answer
             answer = models[modelName]({'question': data['question'], 'context': data['context']})['answer']
         else:
-            modelName = 'deepset-roberta' 
+            modelName = 'distilled-bert' 
             answer = defaultModel({'question': data['question'], 'context': data['context']})['answer']
 
         ts = getUnixTimeStamp()
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     createTables(conn) 
     modelListQuery = 'select * from models;' 
     modelList = runSqliteQuery(conn, modelListQuery, 'SELECT')
-    defaultModel = pipeline('question-answering', model='deepset/roberta-base-squad2', tokenizer='deepset/roberta-base-squad2')
+    defaultModel = pipeline('question-answering', model='distilbert-base-uncased-distilled-squad', tokenizer='distilbert-base-uncased-distilled-squad')
     models={} 
     if len(modelList) > 0:
         models = downloadModels(modelList)
