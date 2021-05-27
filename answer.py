@@ -164,6 +164,7 @@ if __name__ == '__main__':
     modelListQuery = 'select * from models;' 
     modelList = runSqliteQuery(conn, modelListQuery, 'SELECT')
     defaultModel = pipeline('question-answering', model='deepset/roberta-base-squad2', tokenizer='deepset/roberta-base-squad2')
+    models={} 
     if len(modelList) > 0:
         models = downloadModels(modelList)
         print(models.keys()) 
