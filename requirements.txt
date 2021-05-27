@@ -1,5 +1,2 @@
 transformers==4.6.1
 flask==2.0.1
-urllib
-datetime
-time
