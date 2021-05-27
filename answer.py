@@ -57,10 +57,10 @@ def getUnixTimeStamp():
 # Face model.
 @app.route("/answer", methods=['POST','GET'])
 def answer():
+    # Get the request body data
+    data = request.json
     if request.method == 'POST':
         #
-        # Get the request body data
-        data = request.json
     
         #Get Model
         if 'model' in urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query).keys():
