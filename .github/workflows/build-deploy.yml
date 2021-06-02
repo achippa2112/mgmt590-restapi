@@ -8,6 +8,11 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   SERVICE: mgmt-590-rest-api
   REGION: us-central1
+  PG_SSLROOTCERT: ${{ secrets.PG_SSLROOTCERT }}
+  PG_SSLCERT: ${{ secrets.PG_SSLCERT }}
+  PG_SSLKEY: ${{ secrets.PG_SSLKEY }}
+  PG_HOST: ${{ secrets.PG_HOST }}
+  PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
 
 jobs:
   deploy:
