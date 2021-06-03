@@ -10,45 +10,138 @@ import urllib.parse
 import datetime, time
 import psycopg2
 
-# Create my flask app
-app = Flask(__name__)
 
-# Define a handler for the / path, which
-# returns "Hello World"
-@app.route("/")
-def hello_world():
-    return "<p>Hello World!</p>"
-
-
-# Define a handler for the / path, which
-# is used to get, add and delete the model
-@app.route("/models", methods=['GET','PUT','DELETE'])
-def models():
-
-    if request.method == 'PUT':
-        #Get the request body data
+def create_app():
+    
+    # Create my flask app
+    app = Flask(__name__)
+    
+    # Define a handler for the / path, which
+    # returns "Hello World"
+    @app.route("/")
+    def hello_world():
+        return "<p>Hello World!</p>"
+    
+    
+    # Define a handler for the / path, which
+    # is used to get, add and delete the model
+    @app.route("/models", methods=['GET','PUT','DELETE'])
+    def models():
+    
+        if request.method == 'PUT':
+            #Get the request body data
+            data = request.json
+            params = (data['name'],data['model'],data['tokenizer'])
+    
+            #Insert the new model into db table models
+            query = '''insert into models(name,model,tokenizer) values(%s,%s,%s)'''
+            runSqlQuery(query, 'INSERT', params)
+    
+            #Also download the new model and add to the dictionary
+            #models[data['name']] = pipeline('question-answering', model=data['model'], tokenizer=data['tokenizer'])
+        elif request.method == 'DELETE':
+    
+            #Get the model name from the query that needs to be deleted.
+            valuepairs = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)
+            modelNameToDel = valuepairs['model']
+    
+            #Run the delete query to remove the requested model
+            runSqlQuery('''delete from models where name = %s ''', 'DELETE', modelNameToDel)
+    
+    
+    
+        response = runSqlQuery('select * from models;','SELECT')
+        return jsonify(response)
+    
+    
+    #Function to get Unixtimestamp
+    def getUnixTimeStamp():
+        systime = datetime.datetime.now()
+        unixTimeStamp = int(time.mktime(systime.timetuple()))
+        return unixTimeStamp
+    
+    
+    # Define a handler for the /answer path, which
+    # processes a JSON payload with a question and
+    # context and returns an answer using a Hugging
+    # Face model.
+    @app.route("/answer", methods=['POST','GET'])
+    def answer():
+        # Get the request body data
         data = request.json
-        params = (data['name'],data['model'],data['tokenizer'])
+    
+        if request.method == 'POST':
+    
+            #Get Modelname from query parameters. If not passed used default model
+            if 'model' in urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query).keys():
+                model_tup = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)['model']
+                modelName = model_tup[0]
+                #Check if model exists in DB
+                dbrow = runSqlQuery('''select * from models where name = %s''','SELECT',model_tup)
+                if len(dbrow) == 0:
+                    return "Model not found in the database"
+                else:
+                    #download the model using pipeline#
+                    hc_comp = pipeline('question-answering', model=dbrow[0]['model'], tokenizer=dbrow[0]['tokenizer'])
+                    #Get the answer
+                    answer = hc_comp({'question': data['question'], 'context': data['context']})['answer']
+            else:
+                modelName = 'distilled-bert'
+    
+                #Download default model to be used
+                defaultModel = pipeline('question-answering', model='distilbert-base-uncased-distilled-squad', tokenizer='distilbert-base-uncased-distilled-squad')
 
-        #Insert the new model into db table models
-        query = '''insert into models(name,model,tokenizer) values(%s,%s,%s)'''
-        runSqliteQuery(conn, query, 'INSERT', params)
+                #Get the answer using the default model
+                answer = defaultModel({'question': data['question'], 'context': data['context']})['answer']
+    
+            ts = getUnixTimeStamp()
+    
+            #Insert a record in answer_history table for tracking of the history.
+            params = (modelName,data['question'],data['context'],answer,ts)
+            query = '''insert into answer_history(model_name, question, context, answer, timestamp) values(%s,%s,%s,%s,%s)'''
+            runSqlQuery(query, 'INSERT', params)
+    
+    
+            #Prepare JSON response
+            out =  {
+                "timestamp": ts,
+                "model": modelName,
+                "answer": answer,
+                "question": data['question'],
+                "context": data['context']
+                }
+    
+            return jsonify(out)
+        else:
+    
+            #When request.method is GET
+    
+            modelName = None
+    
+    
+            #Check if the ModelName is passed in the request.Get ModelName if passed
+            if 'model' in urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query).keys():
+                modelName = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)['model'][0]
+    
+            #Get Start and end timestamps from the request
+            start = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)['start'][0]
+            end = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)['end'][0]
+    
+    
+            #Prepare SQL select query based on whetehr ModelName is passed or not.
+            if modelName == None:
+                query = '''select timestamp, model_name as model, answer, question, context from answer_history where timestamp >= %s and timestamp <= %s'''
+                params = (start, end)
+            else:
+                query = '''select timestamp, model_name as model, answer, question, context from answer_history where model_name = %s and timestamp >= %s and timestamp <= %s'''
+                params = (modelName, start, end)
+    
+    
+            #Execute the select qury to retrieve the history
+            ansHist = runSqlQuery(query, 'SELECT', params)
+            return jsonify(ansHist)
 
-        #Also download the new model and add to the dictionary
-        #models[data['name']] = pipeline('question-answering', model=data['model'], tokenizer=data['tokenizer'])
-    elif request.method == 'DELETE':
-
-        #Get the model name from the query that needs to be deleted.
-        valuepairs = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)
-        modelNameToDel = valuepairs['model']
-
-        #Run the delete query to remove the requested model
-        runSqliteQuery(conn, '''delete from models where name = %s ''', 'DELETE', modelNameToDel)
-
-
-
-    response = runSqliteQuery(conn, 'select * from models;','SELECT')
-    return jsonify(response)
+    return app
 
 
 #Function to get Unixtimestamp
@@ -58,86 +151,8 @@ def getUnixTimeStamp():
     return unixTimeStamp
 
 
-# Define a handler for the /answer path, which
-# processes a JSON payload with a question and
-# context and returns an answer using a Hugging
-# Face model.
-@app.route("/answer", methods=['POST','GET'])
-def answer():
-    # Get the request body data
-    data = request.json
-
-    if request.method == 'POST':
-
-        #Get Modelname from query parameters. If not passed used default model
-        if 'model' in urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query).keys():
-            model_tup = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)['model']
-            modelName = model_tup[0]
-            #Check if model exists in DB
-            dbrow = runSqliteQuery(conn, '''select * from models where name = %s''','SELECT',model_tup)
-            if len(dbrow) == 0:
-                return "Model not found in the database"
-            else:
-                #download the model using pipeline#
-                hc_comp = pipeline('question-answering', model=dbrow[0]['model'], tokenizer=dbrow[0]['tokenizer'])
-                #Get the answer
-                answer = hc_comp({'question': data['question'], 'context': data['context']})['answer']
-        else:
-            modelName = 'distilled-bert'
-
-            #Get the answer using the default model
-            answer = defaultModel({'question': data['question'], 'context': data['context']})['answer']
-
-        ts = getUnixTimeStamp()
-
-        #Insert a record in answer_history table for tracking of the history.
-        params = (modelName,data['question'],data['context'],answer,ts)
-        query = '''insert into answer_history(model_name, question, context, answer, timestamp) values(%s,%s,%s,%s,%s)'''
-        runSqliteQuery(conn, query, 'INSERT', params)
-
-
-        #Prepare JSON response
-        out =  {
-            "timestamp": ts,
-            "model": modelName,
-            "answer": answer,
-            "question": data['question'],
-            "context": data['context']
-            }
-
-        return jsonify(out)
-    else:
-
-        #When request.method is GET
-
-        modelName = None
-
-
-        #Check if the ModelName is passed in the request.Get ModelName if passed
-        if 'model' in urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query).keys():
-            modelName = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)['model'][0]
-
-        #Get Start and end timestamps from the request
-        start = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)['start'][0]
-        end = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)['end'][0]
-
-
-        #Prepare SQL select query based on whetehr ModelName is passed or not.
-        if modelName == None:
-            query = '''select timestamp, model_name as model, answer, question, context from answer_history where timestamp >= %s and timestamp <= %s'''
-            params = (start, end)
-        else:
-            query = '''select timestamp, model_name as model, answer, question, context from answer_history where model_name = %s and timestamp >= %s and timestamp <= %s'''
-            params = (modelName, start, end)
-
-
-        #Execute the select qury to retrieve the history
-        ansHist = runSqliteQuery(conn, query, 'SELECT', params)
-        return jsonify(ansHist)
-
-
 #Function to create DB connection
-def create_connection(db_file):
+def create_connection():
     """ create a database connection to the SQLite database
         specified by db_file
     :param db_file: database file
@@ -170,12 +185,13 @@ def create_connection(db_file):
 
 
 #Function to run the sql queries.
-def runSqliteQuery(conn, query, qType, params = None):
+def runSqlQuery(query, qType, params = None):
     """
     Query all rows in the tasks table
     :param conn: the Connection object
     :return:
     """
+    conn = create_connection() 
     cur = conn.cursor()
     if params == None:
         cur.execute(query)
@@ -191,10 +207,13 @@ def runSqliteQuery(conn, query, qType, params = None):
     else:
         conn.commit()
 
-
+    conn.close()
 
 #Function to create DB tables
-def createTables(conn):
+def createTables():
+    
+    conn = create_connection()
+
     try:
         c = conn.cursor()
 
@@ -206,21 +225,16 @@ def createTables(conn):
     except Error as e:
         print(e)
 
+    conn.close()
+
+
 # Run if running "python answer.py"
 if __name__ == '__main__':
-
-    #Database file
-    database = r"pythonsqlite.db"
-
-    #Create DB connection
-    conn = create_connection(database)
+    
+    # Create our Flask App
+    app = create_app()
 
     #Create tables if not exists.
-    createTables(conn)
-
-
-    #Download default model to be used
-    defaultModel = pipeline('question-answering', model='distilbert-base-uncased-distilled-squad', tokenizer='distilbert-base-uncased-distilled-squad')
-
+    createTables()
 
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)), threaded=True)

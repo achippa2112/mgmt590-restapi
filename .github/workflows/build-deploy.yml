@@ -8,11 +8,6 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   SERVICE: mgmt-590-rest-api
   REGION: us-central1
-  PG_SSLROOTCERT: ${{ secrets.PG_SSLROOTCERT }}
-  PG_SSLCERT: ${{ secrets.PG_SSLCERT }}
-  PG_SSLKEY: ${{ secrets.PG_SSLKEY }}
-  PG_HOST: ${{ secrets.PG_HOST }}
-  PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
 
 jobs:
   deploy:
@@ -35,7 +30,11 @@ jobs:
       run: |-
         docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{  github.sha }} .
         docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{  github.sha }}
-        
+       
+    - name: Test Container
+      run: |-
+        docker run -w /app gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{  github.sha }} pytest -v
+
     - name: Deploy to Cloud Run
       id: deploy
       uses: google-github-actions/deploy-cloudrun@v0.4.0
@@ -43,6 +42,7 @@ jobs:
         service: ${{ env.SERVICE }}
         image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{  github.sha }}
         region: ${{ env.REGION }}
+        env_vars: PG_SSLROOTCERT = ${{ secrets.PG_SSLROOTCERT }}, PG_SSLCERT = ${{ secrets.PG_SSLCERT }}, PG_SSLKEY = ${{ secrets.PG_SSLKEY }}, PG_HOST = ${{ secrets.PG_HOST }}, PG_PASSWORD = ${{ secrets.PG_PASSWORD }}
 
     - name: Show Output
       run: echo ${{ steps.deploy.outputs.url }}
