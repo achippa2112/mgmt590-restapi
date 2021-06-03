@@ -34,9 +34,7 @@ jobs:
        
     - name: Test Container
       run: |-
-        docker run -w /app gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{  github.sha }} pytest -v 
-      with:
-        env_vars: PG_SSLROOTCERT = ${{ secrets.PG_SSLROOTCERT }}, PG_SSLCERT = ${{ secrets.PG_SSLCERT }}, PG_SSLKEY = ${{ secrets.PG_SSLKEY }}, PG_HOST = ${{ secrets.PG_HOST }}, PG_PASSWORD = ${{ secrets.PG_PASSWORD }}
+        PG_SSLROOTCERT=${{ secrets.PG_SSLROOTCERT }} PG_SSLCERT=${{ secrets.PG_SSLCERT }} PG_SSLKEY=${{ secrets.PG_SSLKEY }} PG_HOST=${{ secrets.PG_HOST }} PG_PASSWORD=${{ secrets.PG_PASSWORD }} docker run -w /app gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{  github.sha }} pytest -v 
 
     - name: Deploy to Cloud Run
       id: deploy
