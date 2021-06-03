@@ -165,8 +165,7 @@ def create_connection():
       sslrootcert = "sslrootcert={}".format(os.environ.get('PG_SSLROOTCERT'))
       sslcert = "sslcert={}".format(os.environ.get('PG_SSLCERT'))
       sslkey = "sslkey={}".format(os.environ.get('PG_SSLKEY'))
-      #hostaddr = "hostaddr={}".format(os.environ.get('PG_HOST'))
-      hostaddr = "hostaddr=34.69.134.113"
+      hostaddr = "hostaddr={}".format(os.environ.get('PG_HOST'))
       user = "user=postgres"
       password = "password={}".format(os.environ.get('PG_PASSWORD'))
       dbname="dbname=mgmt590"
