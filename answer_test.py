@@ -52,7 +52,7 @@ def test_answer_post(client):
 def test_answer_get(client):
    
 
-    #Test /answer GET
+    #Test route /answer GET
 
     query_string = ["?model=bert-tiny&start=1522081879&end=1722081879","?start=1522081879&end=1722081879"]
     
