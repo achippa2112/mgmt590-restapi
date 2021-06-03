@@ -161,10 +161,27 @@ def create_connection():
     conn = None
     try:
       #  conn = sqlite3.connect(db_file,check_same_thread=False)
+      
+      rootcert_content = format(os.environ.get('PG_SSLROOTCERT'))
+      fcert_content = format(os.environ.get('PG_SSLCERT'))
+      fkey_content = format(os.environ.get('PG_SSLKEY'))
+
+      frootcert = open("sslrootcert.txt","w")
+      frootcert.write(rootcert_content.replace("@","="))
+      frootcert.close()
+
+      fcert = open("sslcert.txt","w")
+      fcert.write(fcert_content.replace("@","="))
+      fcert.close()
+
+      fkey = open("sslkey.txt","w")
+      fkey.write(fkey_content.replace("@","="))
+      fkey.close()
+
       sslmode="sslmode=verify-ca"
-      sslrootcert = "sslrootcert={}".format(os.environ.get('PG_SSLROOTCERT'))
-      sslcert = "sslcert={}".format(os.environ.get('PG_SSLCERT'))
-      sslkey = "sslkey={}".format(os.environ.get('PG_SSLKEY'))
+      sslrootcert = "sslrootcert=sslrootcert.txt"
+      sslcert = "sslcert=sslcert.txt"
+      sslkey = "sslkey=sslkey.txt"
       hostaddr = "hostaddr={}".format(os.environ.get('PG_HOST'))
       user = "user=postgres"
       password = "password={}".format(os.environ.get('PG_PASSWORD'))
