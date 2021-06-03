@@ -173,10 +173,14 @@ def create_connection():
       fcert = open("sslcert.txt","w")
       fcert.write(fcert_content.replace("@","="))
       fcert.close()
-
+      
       fkey = open("sslkey.txt","w")
       fkey.write(fkey_content.replace("@","="))
       fkey.close()
+
+      os.chmod("sslrootcert.txt",0o600)
+      os.chmod("sslcert.txt",0o600)
+      os.chmod("sslkey.txt",0o600)
 
       sslmode="sslmode=verify-ca"
       sslrootcert = "sslrootcert=sslrootcert.txt"
