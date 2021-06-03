@@ -184,7 +184,7 @@ def create_connection():
     return conn
 
 
-#Function to run the sql queries.
+#Function to run the sql queries..
 def runSqlQuery(query, qType, params = None):
     """
     Query all rows in the tasks table
