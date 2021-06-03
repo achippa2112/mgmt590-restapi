@@ -234,7 +234,7 @@ if __name__ == '__main__':
     # Create our Flask App
     app = create_app()
 
-    #Create tables if not exists.
+    #Create tables if not exists..
     createTables()
 
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)), threaded=True)
