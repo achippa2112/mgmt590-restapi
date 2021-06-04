@@ -10,9 +10,6 @@ import urllib.parse
 import datetime, time
 import psycopg2
 
-#Create tables if not exists..
-createTables()
-
 def create_app():
     
     # Create my flask app
