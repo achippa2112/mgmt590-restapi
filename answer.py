@@ -10,6 +10,8 @@ import urllib.parse
 import datetime, time
 import psycopg2
 
+#Create tables if not exists..
+createTables()
 
 def create_app():
     
@@ -162,22 +164,23 @@ def create_connection():
     try:
       #  conn = sqlite3.connect(db_file,check_same_thread=False)
       
+      #Read SSL certificate content from env
       rootcert_content = format(os.environ.get('PG_SSLROOTCERT'))
       fcert_content = format(os.environ.get('PG_SSLCERT'))
       fkey_content = format(os.environ.get('PG_SSLKEY'))
-
+      
+      #Write SSL content into temp files
       frootcert = open("sslrootcert.txt","w")
       frootcert.write(rootcert_content.replace("@","="))
       frootcert.close()
-
       fcert = open("sslcert.txt","w")
       fcert.write(fcert_content.replace("@","="))
       fcert.close()
-      
       fkey = open("sslkey.txt","w")
       fkey.write(fkey_content.replace("@","="))
       fkey.close()
 
+      #Change unix permissions to restricted
       os.chmod("sslrootcert.txt",0o600)
       os.chmod("sslcert.txt",0o600)
       os.chmod("sslkey.txt",0o600)
