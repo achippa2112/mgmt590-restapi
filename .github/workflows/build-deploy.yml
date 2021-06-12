@@ -13,7 +13,7 @@ env:
   PG_SSLKEY: ${{ secrets.PG_SSLKEY }}
   PG_HOST: ${{ secrets.PG_HOST }}
   PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
-
+  GCS_CREDS: ${{ secrets.GCS_CREDS }}
 
 jobs:
   deploy:
