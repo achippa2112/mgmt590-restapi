@@ -9,6 +9,9 @@ from sqlite3 import Error
 import urllib.parse
 import datetime, time
 import psycopg2
+from google.cloud import storage
+from werkzeug.utils import secure_filename
+
 
 def create_app():
     
@@ -21,7 +24,35 @@ def create_app():
     def hello_world():
         return "<p>Hello World!</p>"
     
+    #Define a handler for uploading csv for batch process
+    @app.route("/upload", methods=['POST'])
+    def upload_file():
+        f = request.files['file']
+        f.save(os.path.join('/tmp', secure_filename(f.filename)))
+        
+        #Get GCS credentials 
+        filecontents = os.environ.get('GCS_CREDS').replace("@","=")
+        decoded_creds = base64.b64decode(filecontents)
+        with open('/app/creds.json', 'w') as f:
+            f.write(decoded_creds)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = '/app/creds.json'
+
+        #creating a GCS client
+        client = storage.Client()
+
+        #Retrieving the bucket
+        bucket = client.get_bucket('gcsrestapi')
+
+        # Push our file to the bucket
+        try:
+            #
+            bucket.blob(os.path.join('/tmp', secure_filename(f.filename)))
+        except:
+            return "Failed to upload file "+secure_filename(f.filename) 
+        else:
+            return "Successfully uploaded the file"+secure_filename(f.filename)
     
+
     # Define a handler for the / path, which
     # is used to get, add and delete the model
     @app.route("/models", methods=['GET','PUT','DELETE'])
