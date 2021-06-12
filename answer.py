@@ -29,12 +29,13 @@ def create_app():
     def upload_file():
         f = request.files['file']
         f.save(os.path.join('/tmp', secure_filename(f.filename)))
+        #f.save(secure_filename(f.filename)) 
         
         #Get GCS credentials 
         filecontents = os.environ.get('GCS_CREDS').replace("@","=")
         decoded_creds = base64.b64decode(filecontents)
-        with open('/app/creds.json', 'w') as f:
-            f.write(decoded_creds)
+        with open('/app/creds.json', 'w') as f1:
+            f1.write(decoded_creds.decode("utf-8"))
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = '/app/creds.json'
 
         #creating a GCS client
@@ -46,7 +47,11 @@ def create_app():
         # Push our file to the bucket
         try:
             #
-            bucket.blob(os.path.join('/tmp', secure_filename(f.filename)))
+            blob = bucket.blob(os.path.join('/tmp', secure_filename(f.filename))) 
+            blob.upload_from_filename(filename=os.path.join('/tmp', secure_filename(f.filename)))
+            #blob = bucket.blob(secure_filename(f.filename)) 
+            #blob.upload_from_filename(filename=secure_filename(f.filename))  
+            #bucket.blob(os.path.join('/tmp/', secure_filename(f.filename)))
         except:
             return "Failed to upload file "+secure_filename(f.filename) 
         else:
