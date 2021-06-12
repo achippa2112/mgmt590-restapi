@@ -47,8 +47,8 @@ def create_app():
         # Push our file to the bucket
         try:
             #
-            blob = bucket.blob(os.path.join('/tmp', secure_filename(f.filename))) 
-            blob.upload_from_filename(filename=secure_filename(f.filename))
+            blob = bucket.blob(secure_filename(f.filename)) 
+            blob.upload_from_filename(filename=os.path.join('/tmp', secure_filename(f.filename)))
             #blob = bucket.blob(secure_filename(f.filename)) 
             #blob.upload_from_filename(filename=secure_filename(f.filename))  
             #bucket.blob(os.path.join('/tmp/', secure_filename(f.filename)))
