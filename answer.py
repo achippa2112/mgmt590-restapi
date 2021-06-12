@@ -11,7 +11,7 @@ import datetime, time
 import psycopg2
 from google.cloud import storage
 from werkzeug.utils import secure_filename
-
+import base64
 
 def create_app():
     
